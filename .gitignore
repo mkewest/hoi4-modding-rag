@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.venv312/
+venv312/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+vectordb/
+models/
+data/processed/
+*.lance/
+
+# Data
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporary files
+.tmp_zlibstate/
+.instructions/
+
+#Lock file (optional - uncomment if you want reproducible builds)
+uv.lock
