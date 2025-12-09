@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +22,7 @@ def test_lancedb_upsert_and_search(tmp_path: Path):
         parent_headings=["H"],
         token_count=10,
         content_hash="hash",
-        ingestion_timestamp=None,
+        ingestion_timestamp=datetime.now(timezone(timedelta(hours=1), "CET")),
     )
 
     count = store.upsert_chunks([chunk])

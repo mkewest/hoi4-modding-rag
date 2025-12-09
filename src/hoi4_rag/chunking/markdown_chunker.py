@@ -54,6 +54,15 @@ class MarkdownChunker:
         self.overlap_tokens = overlap_tokens
         self.code_block_atomic = code_block_atomic
 
+    @staticmethod
+    def _collect_level(sections: list[Section], level: int) -> list[Section]:
+        found = []
+        for s in sections:
+            if s.level == level:
+                found.append(s)
+            found.extend(MarkdownChunker._collect_level(s.children, level))
+        return found
+
     def chunk_document(self, file_path: Path) -> list[Chunk]:
         """Parse and chunk a single markdown file."""
         if not file_path.exists():
@@ -75,7 +84,8 @@ class MarkdownChunker:
             return []
 
         chunks: list[Chunk] = []
-        h2_sections = [s for s in sections if s.level == 2]
+
+        h2_sections = self._collect_level(sections, 2)
         target_sections = h2_sections if h2_sections else sections
 
         for section in target_sections:
@@ -296,10 +306,7 @@ class MarkdownChunker:
             if node is target:
                 path.extend(parents)
                 return True
-            for child in node.children:
-                if dfs(child, parents + [node.heading]):
-                    return True
-            return False
+            return any(dfs(child, parents + [node.heading]) for child in node.children)
 
         for root in roots:
             if dfs(root, []):

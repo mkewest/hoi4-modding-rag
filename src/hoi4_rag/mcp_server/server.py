@@ -76,6 +76,17 @@ def _chunk_to_dict(chunk) -> dict[str, Any]:
     }
 
 
+def _result_to_dict(result: Any) -> dict[str, Any]:
+    """Normalize search results to plain dicts."""
+    if isinstance(result, dict):
+        return dict(result)
+    if hasattr(result, "__dict__"):
+        return dict(result.__dict__)
+    # Fallback for objects without __dict__
+    keys = ("chunk_id", "text", "score", "metadata")
+    return {key: getattr(result, key, None) for key in keys}
+
+
 def create_server(
     settings: Settings | None = None,
     searcher: HybridSearcher | None = None,
@@ -109,7 +120,7 @@ def create_server(
         filters = {"domain": domain} if domain else None
         initial = searcher.search(query, top_k=top_k * 2, filters=filters, use_colbert_rerank=False)
         reranked = reranker.rerank(query, initial, top_k=top_k)
-        return [r.__dict__ for r in reranked]
+        return [_result_to_dict(r) for r in reranked]
 
     @mcp.tool()
     def search_code_examples(query: str, language: str = "pdx", top_k: int = 5):
@@ -117,7 +128,7 @@ def create_server(
         del language  # not yet used for filtering
         initial = searcher.search(query, top_k=top_k * 2, use_colbert_rerank=False)
         reranked = reranker.rerank(query, initial, top_k=top_k)
-        return [r.__dict__ for r in reranked]
+        return [_result_to_dict(r) for r in reranked]
 
     @mcp.tool()
     def get_document_section(document_id: str, include_context: bool = False):
@@ -149,7 +160,7 @@ def create_server(
         filters = {"domain": "defines_list"}
         query = define_name if category is None else f"{category} {define_name}"
         results = searcher.search(query, top_k=top_k, filters=filters, use_colbert_rerank=False)
-        return [r.__dict__ for r in results]
+        return [_result_to_dict(r) for r in results]
 
     @mcp.tool()
     def lookup_modifier(modifier_name: str, category: str | None = None, top_k: int = 5):
@@ -157,14 +168,14 @@ def create_server(
         filters = {"domain": "modifiers_list"}
         query = modifier_name if category is None else f"{category} {modifier_name}"
         results = searcher.search(query, top_k=top_k, filters=filters, use_colbert_rerank=False)
-        return [r.__dict__ for r in results]
+        return [_result_to_dict(r) for r in results]
 
     @mcp.tool()
     def diagnose_error(error_message: str, context: str | None = None, top_k: int = 5):
         """Diagnose HOI4 modding errors from logs or descriptions."""
         combined = f"{error_message}\n{context}" if context else error_message
         results = searcher.search(combined, top_k=top_k, use_colbert_rerank=False)
-        return [r.__dict__ for r in results]
+        return [_result_to_dict(r) for r in results]
 
     @mcp.resource("hoi4://domains")
     def list_domains():
