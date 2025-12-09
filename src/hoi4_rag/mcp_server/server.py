@@ -78,10 +78,11 @@ def _chunk_to_dict(chunk) -> dict[str, Any]:
 
 def _result_to_dict(result: Any) -> dict[str, Any]:
     """Normalize search results to plain dicts."""
+    # Prefer __dict__ for non-plain-dict objects (including dict subclasses)
+    if hasattr(result, "__dict__") and not isinstance(result, dict):
+        return dict(result.__dict__)
     if isinstance(result, dict):
         return dict(result)
-    if hasattr(result, "__dict__"):
-        return dict(result.__dict__)
     # Fallback for objects without __dict__
     keys = ("chunk_id", "text", "score", "metadata")
     return {key: getattr(result, key, None) for key in keys}
