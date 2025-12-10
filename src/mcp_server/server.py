@@ -9,10 +9,15 @@ from typing import Any
 from config import Settings
 from embeddings.bge_m3 import BGEM3Embedder
 from retrieval import BGEReranker, HybridSearcher
-from vectordb import LanceDBStore, SparseIndex
+
+from vectordb.lancedb_store import LanceDBStore
+from vectordb.sparse_index import SparseIndex
 
 try:  # Optional dependency guard for environments without MCP SDK
-    from mcp import FastMCP, resource, tool
+    from mcp.server import FastMCP
+
+    if not hasattr(FastMCP, "tool") or not hasattr(FastMCP, "resource"):
+        raise ImportError("mcp.server.FastMCP missing tool/resource decorators")
 except ImportError:  # pragma: no cover - fallback stubs
 
     class FastMCP:  # type: ignore
@@ -35,7 +40,9 @@ except ImportError:  # pragma: no cover - fallback stubs
             return decorator
 
         def run(self) -> None:
-            raise ImportError("mcp package not installed")
+            raise ImportError(
+                "mcp package not installed or incompatible. Install the 'mcp' package."
+            )
 
     def tool(*args: Any, **kwargs: Any):
         def decorator(func):
@@ -108,10 +115,14 @@ def create_server(
     if reranker is None:
         reranker = BGEReranker(settings.reranker)
 
-    mcp = FastMCP(
-        name=settings.mcp_server_name,
-        description="HOI4 modding documentation retrieval system",
-    )
+    try:
+        mcp = FastMCP(
+            name=settings.mcp_server_name,
+            description="HOI4 modding documentation retrieval system",
+        )
+    except TypeError:
+        # Older/newer MCP versions may not accept description
+        mcp = FastMCP(name=settings.mcp_server_name)
 
     @mcp.tool()
     def search_documentation(

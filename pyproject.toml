@@ -23,7 +23,7 @@ dependencies = [
     "python-frontmatter>=1.1.0",  # YAML frontmatter parsing
     "mistune>=3.0.0",             # Markdown parsing
     # MCP Server
-    "mcp>=1.0.0",                 # Official MCP SDK (includes FastMCP)
+    "mcp>=1.1.0",                 # Official MCP SDK (includes FastMCP)
     # Utilities
     "pydantic>=2.0.0",
     "pydantic[mypy]>=2.0.0",

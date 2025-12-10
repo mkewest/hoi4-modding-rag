@@ -6,12 +6,13 @@ from pathlib import Path
 from time import perf_counter
 
 import typer
+from chunking import MarkdownChunker
+from config import Settings
+from embeddings import BGEM3Embedder
+from ingestion import IngestionPipeline
 
-from src.chunking import MarkdownChunker
-from src.config import Settings
-from src.embeddings import BGEM3Embedder
-from src.ingestion import IngestionPipeline
-from src.vectordb import LanceDBStore, SparseIndex
+from vectordb.lancedb_store import LanceDBStore
+from vectordb.sparse_index import SparseIndex
 
 app = typer.Typer(help="HOI4 RAG ingestion commands.")
 
