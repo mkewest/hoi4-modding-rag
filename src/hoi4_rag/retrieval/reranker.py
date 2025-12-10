@@ -33,6 +33,7 @@ class BGEReranker:
             return []
 
         self._ensure_model()
+        assert self._model is not None
         pairs = [[query, c.text] for c in candidates]
         try:
             scores = self._model.compute_score(pairs, normalize=True)
@@ -56,6 +57,7 @@ class BGEReranker:
     def score_pair(self, query: str, document: str) -> float:
         """Score a single query-document pair."""
         self._ensure_model()
+        assert self._model is not None
         try:
             score = self._model.compute_score([[query, document]], normalize=True)[0]
         except Exception as exc:  # pragma: no cover - defensive

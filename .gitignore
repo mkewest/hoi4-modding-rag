@@ -9,6 +9,7 @@ venv312/
 *.egg-info/
 dist/
 build/
+.mypy_cache/
 
 # Environment
 .env
@@ -21,9 +22,8 @@ build/
 *.swo
 
 # Project specific
-vectordb/
+vector_db/
 models/
-data/processed/
 *.lance/
 
 # Data
@@ -44,3 +44,8 @@ htmlcov/
 
 #Lock file (optional - uncomment if you want reproducible builds)
 uv.lock
+
+# Test files
+tests/
+pytest_log.txt
+.ruff_cache/

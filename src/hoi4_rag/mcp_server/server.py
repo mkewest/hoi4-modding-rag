@@ -37,13 +37,13 @@ except ImportError:  # pragma: no cover - fallback stubs
         def run(self) -> None:
             raise ImportError("mcp package not installed")
 
-    def tool(*args: Any, **kwargs: Any):  # type: ignore
+    def tool(*args: Any, **kwargs: Any):
         def decorator(func):
             return func
 
         return decorator
 
-    def resource(*args: Any, **kwargs: Any):  # type: ignore
+    def resource(*args: Any, **kwargs: Any):
         def decorator(func):
             return func
 
@@ -54,12 +54,12 @@ def _load_master_index(kb_path: Path) -> dict[str, Any]:
     """Load master_index.json if present."""
     master_index = kb_path / "master_index.json"
     if not master_index.exists():
-        return {}
+        raise ValueError("Master index not found")
     try:
         with master_index.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+            return dict(json.load(f))
+    except Exception as err:
+        raise ValueError("Failed to load master index") from err
 
 
 def _chunk_to_dict(chunk) -> dict[str, Any]:
@@ -76,16 +76,14 @@ def _chunk_to_dict(chunk) -> dict[str, Any]:
     }
 
 
-def _result_to_dict(result: Any) -> dict[str, Any]:
-    """Normalize search results to plain dicts."""
-    # Prefer __dict__ for non-plain-dict objects (including dict subclasses)
-    if hasattr(result, "__dict__") and not isinstance(result, dict):
+def _result_to_dict(result):
+    if hasattr(result, "__dict__"):
+        if isinstance(result, dict):  # dict subclass
+            return {**result, **result.__dict__}
         return dict(result.__dict__)
-    if isinstance(result, dict):
+    if isinstance(result, dict):  # plain dict
         return dict(result)
-    # Fallback for objects without __dict__
-    keys = ("chunk_id", "text", "score", "metadata")
-    return {key: getattr(result, key, None) for key in keys}
+    return {k: getattr(result, k, None) for k in ("chunk_id", "text", "score", "metadata")}
 
 
 def create_server(
@@ -134,14 +132,14 @@ def create_server(
     @mcp.tool()
     def get_document_section(document_id: str, include_context: bool = False):
         """Retrieve a specific documentation section by ID."""
-        chunk = searcher.lancedb_store.get_chunk_by_id(document_id)  # type: ignore[attr-defined]
+        chunk = searcher.lancedb_store.get_chunk_by_id(document_id)
         if chunk is None:
             return None
         if not include_context:
             return _chunk_to_dict(chunk)
 
         # Include siblings from same file
-        table = searcher.lancedb_store._require_table()  # type: ignore[attr-defined]
+        table = searcher.lancedb_store._require_table()
         df = table.to_pandas(filter=f"file_path == '{chunk.file_path}'")
         siblings = []
         for _, row in df.iterrows():

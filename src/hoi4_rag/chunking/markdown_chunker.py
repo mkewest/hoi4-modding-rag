@@ -277,9 +277,17 @@ class MarkdownChunker:
             for sent in sentences:
                 buf.append(sent)
                 candidate = " ".join(buf)
-                if self._estimate_tokens(candidate) >= self.max_chunk_tokens:
-                    yield candidate
-                    buf = []
+                if self._estimate_tokens(candidate) > self.max_chunk_tokens:
+                    overflow = buf.pop()
+                    if buf:
+                        yield " ".join(buf)
+                    # Start new buffer with the sentence that caused the overflow.
+                    # If that single sentence is itself oversized, yield it directly.
+                    if self._estimate_tokens(overflow) > self.max_chunk_tokens:
+                        yield overflow
+                        buf = []
+                    else:
+                        buf = [overflow]
             if buf:
                 yield " ".join(buf)
 

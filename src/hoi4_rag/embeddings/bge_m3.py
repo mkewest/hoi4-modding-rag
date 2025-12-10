@@ -54,6 +54,7 @@ class BGEM3Embedder:
     def embed_documents(self, texts: list[str]) -> EmbeddingOutput:
         """Generate embeddings for multiple documents."""
         self._ensure_model()
+        assert self._model is not None
 
         if not texts:
             empty_dense = np.empty((0, 1024), dtype=np.float32)
@@ -97,6 +98,7 @@ class BGEM3Embedder:
     def embed_query(self, text: str) -> QueryEmbedding:
         """Generate embeddings for a single query."""
         self._ensure_model()
+        assert self._model is not None
 
         try:
             outputs = self._model.encode(
@@ -119,6 +121,9 @@ class BGEM3Embedder:
     def token_id_to_string(self, token_id: int) -> str:
         """Convert token id to text token."""
         self._ensure_model()
+        assert self._model is not None
+        assert self._tokenizer is not None
+
         token_list = self._tokenizer.convert_ids_to_tokens([token_id])
         return token_list[0]
 

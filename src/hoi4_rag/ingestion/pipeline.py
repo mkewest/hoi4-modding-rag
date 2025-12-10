@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -49,7 +49,7 @@ class IngestionPipeline:
 
     def ingest_full(self, source_path: Path, force: bool = False) -> IngestionStats:
         """Full ingestion of the entire knowledge base."""
-        start = datetime.utcnow()
+        start = datetime.now(timezone(timedelta(hours=1), "CET"))
         self.config.validate_paths()
         self.lancedb_store.initialize()
 
@@ -64,21 +64,26 @@ class IngestionPipeline:
             chunks if force else [c for c in chunks if existing_hashes.get(c.id) != c.content_hash]
         )
 
-        embedding_start = datetime.utcnow()
+        embedding_start = datetime.now(timezone(timedelta(hours=1), "CET"))
         dense_vecs, sparse_vecs, colbert_vecs = self._embed_chunks(chunks_to_process)
-        embedding_end = datetime.utcnow()
+        embedding_end = datetime.now(timezone(timedelta(hours=1), "CET"))
 
-        indexed_count = self._upsert(chunks_to_process, dense_vecs, colbert_vecs)
+        # indexed_count = self._upsert(chunks_to_process, dense_vecs, colbert_vecs)
+
         self._update_sparse_index(chunks_to_process, sparse_vecs)
 
-        deleted_count = self._delete(deleted_ids)
+        deleted_count = self._delete(list(deleted_ids))
 
-        indexing_end = datetime.utcnow()
+        indexing_end = datetime.now(timezone(timedelta(hours=1), "CET"))
+
+        # Differentiate new vs updated chunks for clearer stats
+        created_count = sum(1 for c in chunks_to_process if c.id not in existing_hashes)
+        updated_count = len(chunks_to_process) - created_count
 
         return IngestionStats(
-            documents_processed=len(set(Path(c.file_path) for c in chunks)),
-            chunks_created=indexed_count,
-            chunks_updated=indexed_count,  # treat all upserts as updates/creates
+            documents_processed=len({Path(c.file_path) for c in chunks}),
+            chunks_created=created_count,
+            chunks_updated=updated_count,
             chunks_deleted=deleted_count,
             embedding_time_seconds=(embedding_end - embedding_start).total_seconds(),
             indexing_time_seconds=(indexing_end - embedding_end).total_seconds(),
@@ -91,7 +96,7 @@ class IngestionPipeline:
 
     # Internal helpers
     def _existing_hashes(self) -> dict[str, str]:
-        table = self.lancedb_store._require_table()  # type: ignore[attr-defined]
+        table = self.lancedb_store._require_table()
         if len(table) == 0:
             return {}
         df = table.to_pandas(columns=["id", "content_hash"])
@@ -116,7 +121,7 @@ class IngestionPipeline:
         if not chunks:
             return 0
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone(timedelta(hours=1), "CET"))
         document_chunks: list[DocumentChunk] = []
         colbert_store: dict[str, np.ndarray] = self._load_colbert_store()
 
