@@ -1,0 +1,92 @@
+[project]
+name = "hoi4-modding-rag"
+version = "0.1.0"
+description = "RAG system for HOI4 modding documentation with MCP integration"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Martin Westh", email = "mkewesth@pm.me" }
+]
+keywords = ["hoi4", "modding", "rag", "mcp", "claude"]
+
+dependencies = [
+    # Core ML/Embeddings
+    "torch>=2.6.0",
+    "transformers>=4.40.0",
+    "FlagEmbedding>=1.2.11",      # BGE-M3 and rerankers
+    "sentence-transformers>=2.7.0",
+    # Vector Database
+    "lancedb>=0.6.0",
+    "pyarrow>=15.0.0",
+    "tantivy>=0.22.0",            # Full-text search backend
+    # Document Processing
+    "python-frontmatter>=1.1.0",  # YAML frontmatter parsing
+    "mistune>=3.0.0",             # Markdown parsing
+    # MCP Server
+    "mcp>=1.0.0",                 # Official MCP SDK (includes FastMCP)
+    # Utilities
+    "pydantic>=2.0.0",
+    "pydantic[mypy]>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",               # CLI output formatting
+    "typer>=0.12.0",              # CLI framework
+    # Async support
+    "aiofiles>=23.0.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",                # Linting and formatting
+    "mypy>=1.10.0",               # Type checking
+    "pre-commit>=3.7.0",
+]
+gpu = [
+    "torch==2.9.1+cu126",         # CUDA support
+]
+
+[project.scripts]
+ingest = "scripts.ingest_kb:main"
+server = "scripts.run_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src.mcp_server.server"
+disable_error_code = ["no-untyped-def", "no-untyped-call", "untyped-decorator", "var-annotated"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
+torchaudio = { index = "pytorch-cu126" }
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
