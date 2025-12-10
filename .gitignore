@@ -22,7 +22,7 @@ build/
 *.swo
 
 # Project specific
-vector_db/
+vectordb/
 models/
 *.lance/
 
