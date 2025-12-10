@@ -111,7 +111,7 @@ class PathConfig(BaseSettings):
         description="Path to knowledge base markdown files",
     )
     vectordb_path: Path = Field(
-        default=Path("./vectordb"),
+        default=Path("./local_vectordb"),
         description="Path to LanceDB vector database",
     )
     model_cache_path: Path = Field(

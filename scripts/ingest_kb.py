@@ -6,11 +6,12 @@ from pathlib import Path
 from time import perf_counter
 
 import typer
-from hoi4_rag.chunking import MarkdownChunker
-from hoi4_rag.config import Settings
-from hoi4_rag.embeddings import BGEM3Embedder
-from hoi4_rag.ingestion import IngestionPipeline
-from hoi4_rag.vectordb import LanceDBStore, SparseIndex
+
+from src.chunking import MarkdownChunker
+from src.config import Settings
+from src.embeddings import BGEM3Embedder
+from src.ingestion import IngestionPipeline
+from src.vectordb import LanceDBStore, SparseIndex
 
 app = typer.Typer(help="HOI4 RAG ingestion commands.")
 
@@ -29,12 +30,12 @@ def _build_pipeline(settings: Settings) -> IngestionPipeline:
     )
 
 
-@app.command()
+@app.command()  # type: ignore[untyped-decorator]
 def ingest(
-    source: Path = typer.Option(Path("./data/raw"), help="Path to knowledge base."),
-    force: bool = typer.Option(False, help="Reindex everything."),
-    validate: bool = typer.Option(False, help="Run validation after ingestion."),
-):
+    source: Path = typer.Option(Path("./data/raw"), help="Path to knowledge base."),  # noqa: B008
+    force: bool = typer.Option(False, help="Reindex everything."),  # noqa: B008
+    validate: bool = typer.Option(False, help="Run validation after ingestion."),  # noqa: B008
+) -> None:
     """Run full ingestion."""
     settings = Settings.from_env()
     pipeline = _build_pipeline(settings)
@@ -55,8 +56,8 @@ def ingest(
         _validate(settings)
 
 
-@app.command()
-def validate():
+@app.command()  # type: ignore[untyped-decorator]
+def validate() -> None:
     """Validate indexes exist."""
     settings = Settings.from_env()
     _validate(settings)
@@ -85,8 +86,8 @@ def _validate(settings: Settings) -> None:
     typer.echo("Validation OK")
 
 
-@app.command()
-def stats():
+@app.command()  # type: ignore[untyped-decorator]
+def stats() -> None:
     """Show simple ingestion stats (row counts)."""
     import lancedb
 
@@ -100,7 +101,7 @@ def stats():
     typer.echo(f"Total chunks: {len(table)}")
 
 
-def main():
+def main() -> None:
     app()
 
 

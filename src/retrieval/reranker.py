@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+from config import RerankerConfig
 from FlagEmbedding import FlagReranker
-
-from hoi4_rag.config import RerankerConfig
-from hoi4_rag.vectordb import SearchResult
+from vectordb import SearchResult
 
 
 class RetrievalError(Exception):

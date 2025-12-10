@@ -8,11 +8,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
-
-from hoi4_rag.chunking import Chunk, MarkdownChunker
-from hoi4_rag.config import Settings
-from hoi4_rag.embeddings import BGEM3Embedder
-from hoi4_rag.vectordb import DocumentChunk, LanceDBStore, SparseIndex
+from chunking import Chunk, MarkdownChunker
+from config import Settings
+from embeddings.bge_m3 import BGEM3Embedder
+from vectordb import DocumentChunk, LanceDBStore, SparseIndex
 
 
 class IngestionError(Exception):
@@ -69,6 +68,7 @@ class IngestionPipeline:
         embedding_end = datetime.now(timezone(timedelta(hours=1), "CET"))
 
         # indexed_count = self._upsert(chunks_to_process, dense_vecs, colbert_vecs)
+        self._upsert(chunks_to_process, dense_vecs, colbert_vecs)
 
         self._update_sparse_index(chunks_to_process, sparse_vecs)
 
@@ -146,7 +146,7 @@ class IngestionPipeline:
 
         modified = self.lancedb_store.upsert_chunks(document_chunks)
         self._save_colbert_store(colbert_store)
-        return modified
+        return int(modified)
 
     def _delete(self, chunk_ids: Sequence[str]) -> int:
         if not chunk_ids:
@@ -156,7 +156,7 @@ class IngestionPipeline:
             self.sparse_index.remove_document(cid)
         self._prune_colbert_store(chunk_ids)
         self.sparse_index.save()
-        return deleted
+        return int(deleted)
 
     def _update_sparse_index(
         self, chunks: Sequence[Chunk], sparse_vecs: Sequence[dict[int, float]]

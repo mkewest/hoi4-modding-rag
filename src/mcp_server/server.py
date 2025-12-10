@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from hoi4_rag.config import Settings
-from hoi4_rag.embeddings import BGEM3Embedder
-from hoi4_rag.retrieval import BGEReranker, HybridSearcher
-from hoi4_rag.vectordb import LanceDBStore, SparseIndex
+from config import Settings
+from embeddings.bge_m3 import BGEM3Embedder
+from retrieval import BGEReranker, HybridSearcher
+from vectordb import LanceDBStore, SparseIndex
 
 try:  # Optional dependency guard for environments without MCP SDK
     from mcp import FastMCP, resource, tool
@@ -62,7 +62,7 @@ def _load_master_index(kb_path: Path) -> dict[str, Any]:
         raise ValueError("Failed to load master index") from err
 
 
-def _chunk_to_dict(chunk) -> dict[str, Any]:
+def _chunk_to_dict(chunk: Any) -> dict[str, Any]:
     return {
         "id": chunk.id,
         "text": chunk.text,
@@ -76,7 +76,7 @@ def _chunk_to_dict(chunk) -> dict[str, Any]:
     }
 
 
-def _result_to_dict(result):
+def _result_to_dict(result: Any) -> dict[str, Any]:
     if hasattr(result, "__dict__"):
         if isinstance(result, dict):  # dict subclass
             return {**result, **result.__dict__}
@@ -114,7 +114,9 @@ def create_server(
     )
 
     @mcp.tool()
-    def search_documentation(query: str, domain: str | None = None, top_k: int = 5):
+    def search_documentation(
+        query: str, domain: str | None = None, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """Search HOI4 modding documentation for technical information."""
         filters = {"domain": domain} if domain else None
         initial = searcher.search(query, top_k=top_k * 2, filters=filters, use_colbert_rerank=False)
@@ -122,7 +124,9 @@ def create_server(
         return [_result_to_dict(r) for r in reranked]
 
     @mcp.tool()
-    def search_code_examples(query: str, language: str = "pdx", top_k: int = 5):
+    def search_code_examples(
+        query: str, language: str = "pdx", top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """Search for working code examples and implementation patterns."""
         del language  # not yet used for filtering
         initial = searcher.search(query, top_k=top_k * 2, use_colbert_rerank=False)
@@ -130,7 +134,9 @@ def create_server(
         return [_result_to_dict(r) for r in reranked]
 
     @mcp.tool()
-    def get_document_section(document_id: str, include_context: bool = False):
+    def get_document_section(
+        document_id: str, include_context: bool = False
+    ) -> dict[str, Any] | None:
         """Retrieve a specific documentation section by ID."""
         chunk = searcher.lancedb_store.get_chunk_by_id(document_id)
         if chunk is None:
@@ -154,7 +160,9 @@ def create_server(
         return {"section": _chunk_to_dict(chunk), "context": siblings}
 
     @mcp.tool()
-    def lookup_define(define_name: str, category: str | None = None, top_k: int = 5):
+    def lookup_define(
+        define_name: str, category: str | None = None, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """Look up a specific HOI4 define value."""
         filters = {"domain": "defines_list"}
         query = define_name if category is None else f"{category} {define_name}"
@@ -162,7 +170,9 @@ def create_server(
         return [_result_to_dict(r) for r in results]
 
     @mcp.tool()
-    def lookup_modifier(modifier_name: str, category: str | None = None, top_k: int = 5):
+    def lookup_modifier(
+        modifier_name: str, category: str | None = None, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """Look up a specific HOI4 modifier."""
         filters = {"domain": "modifiers_list"}
         query = modifier_name if category is None else f"{category} {modifier_name}"
@@ -170,21 +180,23 @@ def create_server(
         return [_result_to_dict(r) for r in results]
 
     @mcp.tool()
-    def diagnose_error(error_message: str, context: str | None = None, top_k: int = 5):
+    def diagnose_error(
+        error_message: str, context: str | None = None, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """Diagnose HOI4 modding errors from logs or descriptions."""
         combined = f"{error_message}\n{context}" if context else error_message
         results = searcher.search(combined, top_k=top_k, use_colbert_rerank=False)
         return [_result_to_dict(r) for r in results]
 
     @mcp.resource("hoi4://domains")
-    def list_domains():
+    def list_domains() -> list[dict[str, Any]]:
         """List available documentation domains."""
         index = _load_master_index(settings.paths.knowledge_base_path)
         domains = index.get("domains", {})
         return [{"name": name, "path": meta.get("path", "")} for name, meta in domains.items()]
 
     @mcp.resource("hoi4://domain/{domain_name}")
-    def domain_overview(domain_name: str):
+    def domain_overview(domain_name: str) -> str | None:
         """Get overview of a specific domain."""
         index = _load_master_index(settings.paths.knowledge_base_path)
         domains = index.get("domains", {})
@@ -199,8 +211,8 @@ def create_server(
         if not overview.exists():
             return None
         try:
-            return overview.read_text(encoding="utf-8")
-        except Exception:
-            return None
+            return str(overview.read_text(encoding="utf-8"))
+        except Exception as err:
+            raise ValueError("Failed to read overview") from err
 
     return mcp

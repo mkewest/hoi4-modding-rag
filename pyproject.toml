@@ -50,15 +50,15 @@ gpu = [
 ]
 
 [project.scripts]
-hoi4-rag-ingest = "scripts.ingest_kb:main"
-hoi4-rag-server = "scripts.run_server:main"
+ingest = "scripts.ingest_kb:main"
+server = "scripts.run_server:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/hoi4_rag"]
+packages = ["src/"]
 
 [tool.ruff]
 line-length = 100
@@ -74,7 +74,7 @@ strict = true
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "hoi4_rag.mcp_server.server"
+module = "src.mcp_server.server"
 disable_error_code = ["no-untyped-def", "no-untyped-call", "untyped-decorator", "var-annotated"]
 
 [tool.pytest.ini_options]

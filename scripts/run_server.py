@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from hoi4_rag.mcp_server import create_server
+from src.mcp_server.server import create_server
 
 
-def main():
+def main() -> None:
     server = create_server()
     server.run()
 

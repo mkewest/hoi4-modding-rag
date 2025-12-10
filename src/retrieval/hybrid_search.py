@@ -6,10 +6,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
-
-from hoi4_rag.config import RetrievalConfig
-from hoi4_rag.embeddings.bge_m3 import BGEM3Embedder
-from hoi4_rag.vectordb import LanceDBStore, SearchResult, SparseIndex
+from config import RetrievalConfig
+from embeddings.bge_m3 import BGEM3Embedder
+from vectordb import LanceDBStore, SearchResult, SparseIndex
 
 
 class RetrievalError(Exception):

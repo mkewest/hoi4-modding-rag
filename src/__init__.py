@@ -2,6 +2,6 @@
 
 __version__ = "0.1.0"
 
-from hoi4_rag.config import Settings
+from src.config import Settings
 
 __all__ = ["Settings"]

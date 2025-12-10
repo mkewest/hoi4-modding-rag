@@ -6,9 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
+from config import EmbeddingConfig
 from FlagEmbedding import BGEM3FlagModel
-
-from hoi4_rag.config import EmbeddingConfig
 
 
 class EmbeddingError(Exception):
