@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -50,6 +51,30 @@ class BGEM3Embedder:
         except Exception as exc:  # pragma: no cover - defensive
             raise EmbeddingError(f"Failed to load model {self.config.model_name}") from exc
 
+    @staticmethod
+    def _pick(
+        outputs: dict[str, Any],
+        primary: str,
+        fallbacks: tuple[str, ...],
+        default: list[Any] | None = None,
+    ) -> list[Any]:
+        """Return outputs[primary] or first available fallback as a list (converting ndarrays)."""
+
+        def _as_list(value: object) -> list[Any]:
+            if isinstance(value, np.ndarray):
+                return cast(list[Any], value.tolist())
+            if isinstance(value, list | tuple):
+                return list(value)
+            # Unknown type: wrap as single-element list
+            return [value]
+
+        if primary in outputs:
+            return _as_list(outputs[primary])
+        for key in fallbacks:
+            if key in outputs:
+                return _as_list(outputs[key])
+        return default if default is not None else []
+
     def embed_documents(self, texts: list[str]) -> EmbeddingOutput:
         """Generate embeddings for multiple documents."""
         self._ensure_model()
@@ -78,13 +103,19 @@ class BGEM3Embedder:
             except Exception as exc:  # pragma: no cover - defensive
                 raise EmbeddingError("Failed to generate embeddings") from exc
 
-            dense_batch = np.asarray(outputs.get("dense_vecs", []), dtype=np.float32)
+            dense_raw = self._pick(outputs, "dense_vecs", ("dense_embeddings", "dense"), [])
+            dense_batch = np.asarray(dense_raw, dtype=np.float32)
             dense_chunks.append(dense_batch)
 
-            sparse_vectors.extend(outputs.get("sparse_vecs", []))
+            sparse_vectors.extend(
+                self._pick(outputs, "sparse_vecs", ("lexical_weights", "sparse"), [])
+            )
 
             colbert_batch = [
-                np.asarray(vec, dtype=np.float32) for vec in outputs.get("colbert_vecs", [])
+                np.asarray(vec, dtype=np.float32)
+                for vec in self._pick(
+                    outputs, "colbert_vecs", ("colbert_embeddings", "colbert"), []
+                )
             ]
             colbert_vectors.extend(colbert_batch)
 
@@ -111,10 +142,21 @@ class BGEM3Embedder:
         except Exception as exc:  # pragma: no cover - defensive
             raise EmbeddingError("Failed to generate query embedding") from exc
 
+        dense_raw = self._pick(outputs, "dense_vecs", ("dense_embeddings", "dense"), [])
+        if len(dense_raw) == 0:
+            raise EmbeddingError("Model returned no dense embeddings")
+
+        sparse_raw = self._pick(outputs, "sparse_vecs", ("lexical_weights", "sparse"), [{}])
+        colbert_raw = self._pick(outputs, "colbert_vecs", ("colbert_embeddings", "colbert"), [[]])
+
         return QueryEmbedding(
-            dense=np.asarray(outputs["dense_vecs"][0], dtype=np.float32),
-            sparse=outputs["sparse_vecs"][0],
-            colbert=np.asarray(outputs["colbert_vecs"][0], dtype=np.float32),
+            dense=np.asarray(dense_raw[0], dtype=np.float32),
+            sparse=sparse_raw[0] if sparse_raw and len(sparse_raw) > 0 else {},
+            colbert=(
+                np.asarray(colbert_raw[0], dtype=np.float32)
+                if colbert_raw and len(colbert_raw) > 0
+                else np.empty((0, 0))
+            ),
         )
 
     def token_id_to_string(self, token_id: int) -> str:
